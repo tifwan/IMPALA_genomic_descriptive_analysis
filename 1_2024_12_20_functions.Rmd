@@ -1,0 +1,695 @@
+---
+title: "2024_12_03_functions"
+author: "Tiffany Wan"
+date: "2024-12-03"
+output: html_document
+---
+
+```{r}
+# setting up the plot theme
+my_theme <- function(){
+  theme_bw() %+replace%
+    theme(
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(angle = 30, vjust =0),
+      legend.position = "bottom")
+  
+}
+
+## subset KP IMPALA-Patric matrix to those with distance<100
+# input:
+# raw_matrix: pairwise distance matrix (class:matrix)
+# sample_v: all sample isolates (class: vector)
+# public_v: all public isolates (class: vector)
+# SNV: threhold value you want to use to filter raw_matrix
+# keep_all_iso = whether you want to keep all isolates in sample_v (class: boolean)
+get_public_isolate_matrix <- function(raw_matrix, sample_v, public_v, SNV = 100, keep_all_samp = TRUE){
+  pair_df <- expand.grid(id1 = sample_v, id2 = public_v,stringsAsFactors = FALSE) # get all combinations of sample - public isolates
+  pair_df_dist <- data.frame(pair_df, dist = raw_matrix[as.matrix(pair_df)])  # populate pairwise distance value
+  pair_df_dist_filtered <- pair_df_dist %>%
+    filter(dist<SNV) # filter based on threhold value
+  if(keep_all_samp==TRUE){
+    id_to_keep_v <- unique(c(sample_v, as.character(pair_df_dist_filtered$id2))) # to keep all sample isolates and public isolates after threshold
+  } 
+  else{
+    id_to_keep_v <- unique(c(pair_df_dist_filtered$id1, pair_df_dist_filtered$id2)) # to keep only selected isolates after threshold
+  }
+  output_matrix  <- raw_matrix[id_to_keep_v,id_to_keep_v]
+  return(output_matrix)
+}
+
+# distance matrix to long form
+get_mat_long <- function(mat){
+  if( class(mat)[1]!="matrix"){
+    mat = as.matrix(mat)
+  }
+  mat_long <- t(combn(colnames(mat),2))
+  mat_long <- data.frame(mat_long, dist = mat[mat_long])
+  return(mat_long)
+}
+```
+
+## function for building count matrix for SNV pairs
+
+```{r}
+get_mat <- function(data = HCF_transmission){
+  location_v <- unique(c(data$location1,data$location2)) # all the unique locations in the data 
+  
+  # create matrix for SNV10==0 
+  mat_0 <- matrix(nrow = length(location_v),ncol = length(location_v),0) # create empty matrix (n = # unique locations)
+  colnames(mat_0) <- location_v # names from location vector
+  rownames(mat_0) <- location_v # names from location vector
+  
+  # create matrix for SNV10==1
+  mat_1 <- matrix(nrow = length(location_v),ncol = length(location_v),0)
+  colnames(mat_1) <- location_v
+  rownames(mat_1) <- location_v
+  
+  # populate matrix with SNV pair counts from data for both matrices
+  for(i in 1:nrow(data)){
+    loc1 = data$location1[i]
+    loc2 = data$location2[i]
+    
+    # SNV==0 matrix
+    if(data$SNV10[i]==0){
+      if(loc1==loc2){
+        mat_0[loc1,loc2] <- mat_0[loc1,loc2] + data$count[i]
+      }
+      else{
+        mat_0[loc1,loc2] <- mat_0[loc1,loc2] + data$count[i]
+        mat_0[loc2,loc1] <- mat_0[loc2,loc1] + data$count[i] 
+      }
+    }
+    # SNV==1 matrix
+    if(data$SNV10[i]==1){
+      if(loc1==loc2){
+        mat_1[loc1,loc2] <- mat_1[loc1,loc2] + data$count[i]
+      }
+      else{
+        mat_1[loc1,loc2] <- mat_1[loc1,loc2] + data$count[i]
+        mat_1[loc2,loc1] <- mat_1[loc2,loc1] + data$count[i]
+      }
+    }
+  }
+  return(list("Yes"=mat_1,"No"=mat_0))
+}
+```
+
+
+## functions for variant calling
+```{r}
+get_mat_long <- function(mat){
+  if( class(mat)[1]!="matrix"){
+    mat = as.matrix(mat)
+  }
+  mat_long <- t(combn(colnames(mat),2))
+  mat_long <- data.frame(mat_long, dist = mat[mat_long])
+  colnames(mat_long) <- c("X1","X2","dist")
+  return(mat_long)
+}
+
+# create matrix items for all STs
+get_ST_variant_call <- function(fasta=Ecoli_69, reference=NA){
+  distmat <- dist.dna(fasta, model = 'N', pairwise.deletion =F, as.matrix = TRUE)
+  if (!is.na(reference)){
+    distmat <- distmat[-which(rownames(distmat)==reference),-which(colnames(distmat)==reference)]
+  }
+  
+  distmat_long <- get_mat_long(distmat)
+
+  
+  return(list(distmat, distmat_long))
+}
+
+## get msv function 
+get_shared_var <- function(dna_aln, outgroup){
+  dna_aln <- as.matrix(dna_aln)
+
+# get the index of the outgroup
+out_group <- which(row.names(dna_aln)==outgroup) 
+class(dna_aln)
+
+# filter out outgroup
+dna_aln_no_outgroup <- dna_aln[-which(row.names(dna_aln)==outgroup),] 
+class(dna_aln_no_outgroup)
+
+# return named vector with TRUE/FALSE (whether that position has more than one allele)
+multi_allele <- apply(dna_aln_no_outgroup,
+                      2,
+                      FUN = function(aln_pos)
+                      {
+                        
+                        pos_alleles <- unique(aln_pos)
+                       # print(pos_alleles)
+                        
+                        dna_aln_no_outgroup <- setdiff(pos_alleles, c('-', 'n')) # setdiff(a,b): find all values in a that do not occur in b, aka find all unique values besides'-','n' 
+                        
+                        return(length(dna_aln_no_outgroup) > 1) # get the positions where there were more than one alleles
+                        
+                      })
+
+dna_aln <- dna_aln[,which(multi_allele==TRUE)] # subset dna_aln to postions with more than one allele 
+
+# function from prof: to create shared variants matrix
+dna_shared_mat = matrix(0, nrow = nrow(dna_aln), ncol = nrow(dna_aln), dimnames = list(row.names(dna_aln), row.names(dna_aln)))
+dna_shared_vec <- apply(combn(nrow(dna_aln), 2), 2, FUN = function(x){ # create dataset with all combinations of pair-wise comparison of 
+  sum(dna_aln[x[1],] != dna_aln[out_group, ] &  # from each pair-wise comparision, if the alleles from the first one in the pair was different from the outgroup allele (gets boolean), then add up those that were true 
+        dna_aln[x[1], ] == dna_aln[x[2], ] & # see if alleles between the pairwise comparison (boolean), then add up those that were true
+        dna_aln[x[1], ] != "-" & # exclude those that were "-"
+        dna_aln[x[1], ] != 'n' & # exclude those that were "n"
+        dna_aln[out_group, ] != "-" & # exclude those that were "-"
+        dna_aln[out_group, ] != 'n') # exclude those that were "n"
+})
+dna_shared_mat[t(combn(nrow(dna_aln), 2))] = dna_shared_vec # upper triangle
+dna_shared_mat[t(combn(nrow(dna_aln), 2))[,2:1]] = dna_shared_vec # lower triangle
+return(dna_shared_mat)
+}
+
+
+```
+
+## function for creating summary tables and plots for different SNV thresholds - need to set factor first!
+```{r}
+# Function  to create summary tables and plots for different SNV thresholds
+create_pair_summary <- function(stats_df = pre_model_df_all, pairiwise_var_df = pre_Ecoli_meta_all, var_v = lockdown_var){
+  # filter to threshold value
+  #stats_df = models_df
+  # empty df
+  var_tb <- data.frame(Var1=NULL,
+                     Var2=NULL,
+                     Freq=NULL,
+                     group=NULL)
+  
+  
+  for (i in var_v){
+  tb <- as.data.frame(table(pairiwise_var_df[[i]],pairiwise_var_df$transmission)) # number of putative transmission pairs in for the covariate of interest
+  tb$group = i
+  var_tb <- rbind(var_tb,tb)
+  }
+  var_tb <- var_tb %>%
+    filter(Freq!=0)
+  ## Create my own proportion count table for plotting
+  var_tb_wide <- var_tb %>%
+  pivot_wider(id_cols = c(Var1,group), names_from = Var2, values_from = Freq) %>%
+  mutate(variables = Var1,
+         No = `0`,
+         Yes = `1`) %>%
+  select(-c(Var1, `0`,`1`))
+  
+  # add other summary statistics
+  var_tb_wide$all <-  apply(var_tb_wide[,c("No","Yes")],1,sum)
+  var_tb_wide <- var_tb_wide %>%
+  mutate(prop_Yes = Yes/all,
+         prop_No = No/all)
+  
+  # add region to HCF locations
+  var_tb <- var_tb %>%
+   mutate(variables = Var1,
+          Pair_SNV_bool= Var2, 
+         location = case_when(variables %in% c("Bokaa Clinic","Boseja Clinic","Deborah Retief Memorial Hospital")~"Mochudi",
+                            variables%in% c("Borakalalo Clinic","Phuthadikobo Clinic","Scottish Livingstone Referral Hospital") ~"Molepolele",
+                            variables %in% c("Julia Molefhe Clinic","Nkoyaphiri Clinic","Princes Marina Hospital") ~"Gaborone")) %>%
+  select(-c(Var1, Var2))
+  
+  var_tb_wide$p.value <- NaN
+  var_tb_wide$odds <- NaN
+  var_tb_wide$upperCI <- NaN
+  var_tb_wide$lowerCI <- NaN
+  for (i in unique(var_tb_wide$variables)){
+    if(i=="No" | sum(grepl(i, stats_df$var_cat))==0){ #skip variables that are No because they are reference group and have no p-value
+    print(paste("removed reference groups and variables with no stats model output:",i))
+      next
+      }
+    model_i <- grep(i,stats_df$var_cat)
+    summary_df_i <- which(var_tb_wide$variables==i)
+    var_tb_wide$p.value[summary_df_i] <- stats_df$p.value[model_i]
+    var_tb_wide$odds[summary_df_i] <- stats_df$odds[model_i]
+    var_tb_wide$upperCI[summary_df_i] <- stats_df$upperCI[model_i]
+    var_tb_wide$lowerCI[summary_df_i] <- stats_df$lowerCI[model_i]
+    }
+  return(list(var_tb_wide,var_tb))
+}
+```
+
+```{r}
+create_pair_summary <- function(stats_df =post_test_df_all, pairiwise_var_df = Ecoli_post_df, var_v = p_covar){
+  # filter to threshold value
+  #stats_df = models_df
+  # empty df
+  var_tb <- data.frame(Var1=NULL,
+                     Var2=NULL,
+                     Freq=NULL,
+                     group=NULL)
+  
+  for (i in var_v){
+  tb <- as.data.frame(table(pairiwise_var_df[[i]],pairiwise_var_df$transmission))
+  tb$group = i
+  var_tb <- rbind(var_tb,tb)
+  }
+  var_tb <- var_tb %>%
+    filter(Freq!=0)
+  ## Create my own proportion count table for plotting
+  var_tb_wide <- var_tb %>%
+  pivot_wider(id_cols = c(Var1,group), names_from = Var2, values_from = Freq) %>%
+  mutate(variables = Var1,
+         No = `0`,
+         Yes = `1`) %>%
+  select(-c(Var1, `0`,`1`))
+  
+  # add other summary statistics
+  var_tb_wide$all <-  apply(var_tb_wide[,c("No","Yes")],1,sum)
+  var_tb_wide <- var_tb_wide %>%
+  mutate(prop_Yes = Yes/all,
+         prop_No = No/all)
+  
+  # add region to HCF locations
+  var_tb <- var_tb %>%
+   mutate(variables = Var1,
+          Pair_SNV_bool= Var2, 
+         location = case_when(variables %in% c("Bokaa Clinic","Boseja Clinic","Deborah Retief Memorial Hospital")~"Mochudi",
+                            variables%in% c("Borakalalo Clinic","Phuthadikobo Clinic","Scottish Livingstone Referral Hospital") ~"Molepolele",
+                            variables %in% c("Julia Molefhe Clinic","Nkoyaphiri Clinic","Princes Marina Hospital") ~"Gaborone")) %>%
+  select(-c(Var1, Var2))
+  
+  var_tb_wide$p.value <- NaN
+  var_tb_wide$odds <- NaN
+  var_tb_wide$upperCI <- NaN
+  var_tb_wide$lowerCI <- NaN
+  full_df <- data.frame()
+  for(g in unique(var_tb_wide$group)){
+    sub_df <- var_tb_wide %>%
+      filter(group ==g)
+    for (i in unique(sub_df$variables)){
+    if(i=="No" | sum(grepl(i, stats_df$var_cat))==0){ #skip variables that are No because they are reference group and have no p-value
+    print(paste("removed reference groups and variables with no stats model output:",i))
+      next
+      }
+    model_i <- grep(i,stats_df$var_cat[stats_df$var==g])
+    summary_df_i <- which(sub_df$variables==i)
+    sub_df$p.value[summary_df_i] <- stats_df[stats_df$var==g,]$p.value[model_i]
+    sub_df$odds[summary_df_i] <- stats_df[stats_df$var==g,]$est[model_i]
+    sub_df$upperCI[summary_df_i] <- stats_df[stats_df$var==g,]$upperCI[model_i]
+    sub_df$lowerCI[summary_df_i] <- stats_df[stats_df$var==g,]$lowerCI[model_i]
+    full_df <- rbind(full_df, sub_df)
+    }
+  }
+  
+  return(list(full_df,var_tb))
+}
+```
+
+# create graph -transmission cluster visualization
+```{r}
+create_graph <- function(dist_mat_long, condition){
+  #test data
+   #dist_mat_long = Ecoli_meta_match
+   # hclust_df = hclust_Ecoli
+   #condition = c("131")
+   # n = 10
+   # height =10
+  
+  trans_edge <- dist_mat_long %>%
+  #filter(ST_match=="Yes") %>%
+  #mutate(dist = as.numeric(dist)) %>%
+  filter(transmission==1) %>% 
+  filter(ST %in% condition) %>%
+  select(X1,X2,lockdown) %>%
+  filter(lockdown!="No")
+
+  pt_node <- data.frame(nodes = unique(c(trans_edge$X1,trans_edge$X2))) %>%
+    merge(ST_demo[,c("Sample","ST","lockdown","participant_type","participant_type1","location","participant_live_same_hh","referred_by_another")], by.x = "nodes", by.y = "Sample")
+
+  # create graph from data frames
+  g = tbl_graph(pt_node,trans_edge,  directed = FALSE) %>% activate(nodes)%>%
+    
+    mutate(group = group_fast_greedy(),
+           region = case_when(location %in% c("Bokaa Clinic","Boseja Clinic","Deborah Retief Memorial Hospital")~"Mochudi",
+                            location %in% c("Borakalalo Clinic","Phuthadikobo Clinic","Scottish Livingstone Referral Hospital") ~"Molepolele",
+                            location %in% c("Julia Molefhe Clinic","Nkoyaphiri Clinic","Princes Marina Hospital") ~"Gaborone"))
+  
+  return(g)
+}
+
+```
+
+# function - running chi-square/fisher exact test
+```{r}
+# function for running chi-square or fisher exact tests
+get_contingency_test <- function(df = pre_Ecoli_meta_all,var_list = pre_covar){
+  test_out_l <- list()
+for (demo in var_list){
+  vars <- unique(df[[demo]])
+  vars <- setdiff(vars,NA)
+  for (i in vars) {
+    var_t <- df %>%
+      filter(get(demo)==i)
+    var_f <- df %>%
+      filter(get(demo)!=i)
+    var_t_tb <- table(var_t$transmission)
+    var_f_tb <- table(var_f$transmission)
+    if(length(var_t_tb)<2 | length(var_f_tb)<2){
+      next
+    }
+    var_t_tb <- var_t_tb[c(2,1)]
+    var_f_tb<- var_f_tb[c(2,1)]
+    
+    test_out <- suppressWarnings(chisq.test(cbind(var_t_tb,var_f_tb)))
+    if(test_out$expected[1] >5 & test_out$expected[2] >5 & test_out$expected[3] >5 & test_out$expected[4] >5 ) {
+      test_out$estimate <- (var_t_tb[1]/var_t_tb[2])/(var_f_tb[1]/var_f_tb[2])
+      standard_error_or <- sqrt(1/var_t_tb[1] + 1/var_t_tb[2] + 1/var_f_tb[1] + 1/var_f_tb[2])
+      test_out$lowerCI <-  exp(log(test_out$estimate) - 1.96 * standard_error_or)
+      test_out$upperCI <- exp(log(test_out$estimate) + 1.96 * standard_error_or)
+      test_out$var <- demo
+      test_out$covar <- i
+      test_out$test <- "chi-square"
+    }
+    else{
+      test_out <- fisher.test(cbind(var_t_tb,var_f_tb))
+      test_out$lowerCI <- test_out$conf.int[1]
+      test_out$upperCI <- test_out$conf.int[2]
+      test_out$var <- demo
+      test_out$covar <- i
+      test_out$test <- "fisher"
+    }
+     
+    test_out_l <- c(test_out_l, list(test_out))
+  }
+}
+
+test_out_df  <- rbindlist(test_out_l, fill =TRUE)
+test_out_df <- test_out_df %>%
+  distinct(var, covar, p.value, method, estimate, upperCI, lowerCI, test)
+
+return(test_out_df)
+}
+
+```
+
+# age mixed effect model
+```{r}
+# pairs, start as categorical and maybe try continuous
+# age 6 to 18 
+# no one 6 to 18: 0
+# 1 person 6 to 18: 1
+# 2 person 6 to 18 : 2
+fit_mixed_log_model <- function(df = pre_Ecoli_meta_all, dep_var, indep_var){
+  #dep_var = "transmission"
+  #indep_var = "hhid_match"
+  sub_df <- df %>%
+    filter(!is.na(get(indep_var)))
+    model <- glmer(get(dep_var) ~ age1 + age2 + (1 | X1) + (1 | X2) , 
+               data = sub_df, family = binomial) # the mixed effect model with one variable
+  ci <- confint(model, method = "Wald") # using wald test because profile may be too time-consuming
+  reduced_model <- glmer(get(dep_var) ~ (1 | X1) + (1 | X2) , 
+                       data = sub_df, family = binomial) # reduced model without the variable (intercept only)
+  anova <- anova(reduced_model, model, test = "Chisq")
+  test <- summary(model)
+  model_df <- data.frame()
+  if (length(fixef(model))>2){ # for each variable with more than one category for each category variable
+    for (i in 2:length(fixef(model))){
+      new_df <- data.frame(
+        var = indep_var,
+        var_cat = names(fixef(model))[i],
+        est = fixef(model)[i],
+        p.value = summary(model)$coefficients[i,4],
+        odds = exp(fixef(model)[i]),
+        lowerCI = ci[2+i, 1],
+        upperCI = ci[2+i, 2],
+        fit = anova$`Pr(>Chisq)`[2] # does adding this variable significantly improve the model?
+      )
+    #print(model_df)
+     model_df <- rbind(model_df,new_df)
+     #print(model_df)
+    }
+  }else{
+    new_df <- data.frame(
+      var = indep_var,
+      var_cat = names(fixef(model))[2],
+      est = fixef(model)[2],
+      odds = exp(fixef(model)[2]),
+      p.value = summary(model)$coefficients[2,4],
+      lowerCI = ci[4, 1],
+      upperCI = ci[4, 2],
+      fit = anova$`Pr(>Chisq)`[2]
+    )
+    model_df <- rbind(model_df,new_df)
+  }
+  return(model_df)
+}
+```
+
+
+```{r}
+library(lmerTest)
+fit_mixed_log_model <- function(df = pre_Ecoli_meta_all, dep_var, indep_var){
+  #dep_var = "transmission"
+  #indep_var = "hhid_match"
+  sub_df <- df %>%
+    filter(!is.na(get(indep_var)))
+    
+    model <- glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2) , 
+               data = sub_df, family = binomial(link = "logit"), control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000))) # the mixed effect model with one variable
+  ci <- confint(model, method = "Wald") # using wald test because profile may be too time-consuming
+  # reduced_model <- glmer(get(dep_var) ~ (1 | X1) + (1 | X2) , 
+  #                      data = sub_df, family = binomial) # reduced model without the variable (intercept only)
+  # anova <- anova(reduced_model, model, test = "Chisq")
+  #test <- summary(model)
+  model_df <- data.frame()
+  if (length(fixef(model))>2){ # for each variable with more than one category for each category variable
+    for (i in 2:length(fixef(model))){
+      new_df <- data.frame(
+        var = indep_var,
+        var_cat = names(fixef(model))[i],
+        est = fixef(model)[i],
+        p.value = summary(model)$coefficients[i,4],
+        odds = exp(fixef(model)[i]),
+        lowerCI = ci[2+i, 1],
+        upperCI = ci[2+i, 2]
+      )
+    #print(model_df)
+     model_df <- rbind(model_df,new_df)
+     #print(model_df)
+    }
+  }else{
+    new_df <- data.frame(
+      var = indep_var,
+      var_cat = names(fixef(model))[2],
+      est = fixef(model)[2],
+      odds = exp(fixef(model)[2]),
+      p.value = summary(model)$coefficients[2,4],
+      lowerCI = ci[4, 1],
+      upperCI = ci[4, 2]
+    )
+    model_df <- rbind(model_df,new_df)
+  }
+  return(model_df)
+}
+
+```
+
+# run bayesian model if mixed effect model failed
+```{r}
+# library(rstanarm)
+# 
+# # Fit the model using stan_glmer
+# model_stan <- stan_glmer(
+#   formula = dep_var ~ indep_var + (1 | X1) + (1 | X2),
+#   data = sub_df,
+#   family = binomial(link = "logit"),
+#   iter = 2000, # Number of iterations
+#   warmup = 1000, # Number of warmup iterations
+#   chains = 4, # Number of chains
+#   control = list(adapt_delta = 0.95) # Adjust the tuning parameters as necessary
+# )
+# 
+# #install.packages("rstanarm")
+# fit_bayes_mixed_log_model <- function(df = pre_Ecoli_meta_all, dep_var, indep_var){
+#   #dep_var = "transmission"
+#   #indep_var = "hhid_match"
+#   sub_df <- df %>%
+#     filter(!is.na(get(indep_var)))
+#     
+#     model <- stan_glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2) , 
+#                data = sub_df,
+#                family = binomial(link = "logit"),
+#                iter = 10000,
+#                warmup = 1000,
+#                chains =4,
+#                control = list(adapt_delta = 0.95)) # the mixed effect model with one variable
+#   ci <- confint(model, method = "Wald") # using wald test because profile may be too time-consuming
+#   # reduced_model <- glmer(get(dep_var) ~ (1 | X1) + (1 | X2) , 
+#   #                      data = sub_df, family = binomial) # reduced model without the variable (intercept only)
+#   # anova <- anova(reduced_model, model, test = "Chisq")
+#   test <- summary(model)
+#   model_df <- data.frame()
+#   if (length(fixef(model))>2){ # for each variable with more than one category for each category variable
+#     for (i in 2:length(fixef(model))){
+#       new_df <- data.frame(
+#         var = indep_var,
+#         var_cat = names(fixef(model))[i],
+#         est = fixef(model)[i],
+#         p.value = summary(model)$coefficients[i,4],
+#         odds = exp(fixef(model)[i]),
+#         lowerCI = ci[2+i, 1],
+#         upperCI = ci[2+i, 2]
+#       )
+#     #print(model_df)
+#      model_df <- rbind(model_df,new_df)
+#      #print(model_df)
+#     }
+#   }else{
+#     new_df <- data.frame(
+#       var = indep_var,
+#       var_cat = names(fixef(model))[2],
+#       est = fixef(model)[2],
+#       odds = exp(fixef(model)[2]),
+#       p.value = summary(model)$coefficients[2,4],
+#       lowerCI = ci[4, 1],
+#       upperCI = ci[4, 2]
+#     )
+#     model_df <- rbind(model_df,new_df)
+#   }
+#   return(model_df)
+# }
+# 
+library(lme4)
+library(rstanarm)
+
+# Function to Run Mixed Model and Switch to Bayesian if Needed
+run_mixed_model <- function(df, dep_var, indep_var) {
+  failed_model <- FALSE  # Variable to store the model that failed
+
+  mod <- tryCatch({
+    withCallingHandlers(
+      glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2), 
+            data = df, family = binomial(link = "logit"), 
+            control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000))),
+      warning = function(w) {
+        message("\n⚠️ Warning detected: ", w$message)
+        failed_model <<- "lmer"  # Flag the model as failed
+        invokeRestart("muffleWarning")  # Suppress further warning propagation
+      }
+    )
+  }, error = function(e) {
+    message("\n🚨 Error detected: Switching to Bayesian model...")
+    failed_model <<- "lmer"
+    return(NULL)
+  })
+
+  # If any warning occurred or model failed, switch to Bayesian model
+  if (is.null(mod) || failed_model == "lmer") {
+    message("\n🔄 Switching to Bayesian model (brms)...")
+    bayes_mod <- stan_glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2), 
+               data = df,
+               family = binomial(link = "logit"),
+               iter = 2000,
+               warmup = 1000,
+               chains = 4,
+               control = list(adapt_delta = 0.95))
+
+    message("\n✅ Bayesian model successfully fit!")
+    return(bayes_mod)
+  } else {
+    message("\n✅ Frequentist model successfully fit!")
+    return(mod)
+  }
+}
+# 
+# # Example Formula (Change as needed)
+# formula <- reaction ~ days + (1 | subject)
+# data <- sleepstudy  # Example dataset from lme4
+# 
+# # Run the function
+# model <- run_mixed_model(formula, data)
+# 
+# # Print summary of the chosen model
+# summary(model)
+
+```
+
+```{r}
+fit_mixed_log_model <- function(df = pre_Ecoli_meta_all, dep_var, indep_var){
+  #dep_var = "transmission"
+  #indep_var = "hhid_match"
+  sub_df <- df %>%
+    filter(!is.na(get(indep_var)))
+    
+    model <- run_mixed_model(df = sub_df, dep_var=dep_var, indep_var=indep_var)
+    model_df <- data.frame()
+     # Check if the model is Bayesian
+    is_bayesian <- inherits(model, "stanreg")
+    if(is_bayesian){
+      # estimate
+      estimates <- fixef(model)[-1] # remove intercept term
+      # p-value
+      posterior <- as.matrix(model)
+      p_val <- c()
+      var_cat <- names(fixef(model))[-1] # remove intercept term
+      for (loc in var_cat){
+        p_val = c(p_val,setNames(mean(posterior[,loc]>0),loc))
+        # print(p_val)
+        }
+      # odds
+      odds <- exp(estimates) 
+      # confidence interval
+      lowerCI = c()
+      upperCI = c()
+      for (loc in var_cat){
+        lowerCI = c(lowerCI, setNames(posterior_interval(model,prob = 0.95)[loc,1],loc))
+        upperCI = c(upperCI, setNames(posterior_interval(model,prob = 0.95)[loc,2],loc))
+      }
+      new_df <- data.frame(
+        var = "location",
+        var_cat = var_cat,
+        est = estimates,
+        p.value = p_val,
+        odds = odds,
+        lowerCI = lowerCI,
+        upperCI = upperCI,
+        method = "Bayesian"
+        )
+       model_df <- rbind(model_df,new_df)
+    }
+  else{
+     ci <- confint(model, method = "Wald")
+     if (length(fixef(model))>2){ # for each variable with more than one category for each category variable
+       for (i in 2:length(fixef(model))){
+         new_df <- data.frame(
+           var = indep_var,
+           var_cat = names(fixef(model))[i],
+           est = fixef(model)[i],
+           p.value = summary(model)$coefficients[i,4],
+           odds = exp(fixef(model)[i]),
+           lowerCI = ci[2+i, 1],
+           upperCI = ci[2+i, 2],
+           method = "Frequentist"
+           )
+         #print(model_df)
+         model_df <- rbind(model_df,new_df)
+         #print(model_df)
+         }
+       }else{
+         new_df <- data.frame(
+           var = indep_var,
+           var_cat = names(fixef(model))[2],
+           est = fixef(model)[2],
+           odds = exp(fixef(model)[2]),
+           p.value = summary(model)$coefficients[2,4],
+           lowerCI = ci[4, 1],
+           upperCI = ci[4, 2],
+           method = "Frequentist"
+           )
+         model_df <- rbind(model_df,new_df)
+  }
+  }
+    
+  #test <- summary(model)
+  
+ 
+  return(model_df)
+}
+```
+
+
+
