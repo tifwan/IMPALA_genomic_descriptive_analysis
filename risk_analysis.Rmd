@@ -5,47 +5,21 @@ date: "2026-04-17"
 output: html_document
 ---
 
-
-
 ## load library
 
 ```{r load library}
-library(pheatmap)
 library(tidyverse)
-library(readxl)
 library(data.table)
 library(janitor)
 library(viridis)
-library(randomcoloR)
-library(RColorBrewer)
 library(ape)
 library(ggtree)
-library(compareDF)
 library(data.table)
 library(tidyverse)
-library(tidytext)
-library(randomcoloR)
-library(countrycode)
 library(phytools)
-library(aplot)
-library(ggnewscale)
 library(pscl)
-library(magrittr)
-library(nnet)
-library(ggupset)
-#library(olsrr)
-library(car)
-library(hrbrthemes)
-library(plotly)
-library(table1)
-library(tableone)
-library(scatterpie)
-library(aplot)
-library(igraph)
-library(tidygraph)
-library(ggraph)
 library(lmerTest)
-
+library(purrr)
 ```
 
 
@@ -53,216 +27,74 @@ library(lmerTest)
 # variant call results including gubbins and MLtree files
 ```{r, echo=FALSE,fig.show='hide'}
 # read variant calling results
+var_call_dirs <- list.files("data/var_call/",full.names = TRUE)
+fasta_ls <- lapply(var_call_dirs, function(dir){
+  read.FASTA(dir, type = "DNA")
+})
+names(fasta_ls) <- c("ST131","ST10","ST1598","ST1722","ST38","ST46","ST636","ST69","ST757")
+fasta_ls[["ST131"]] <- fasta_ls[["ST131"]][names(fasta_ls[["ST131"]]) != "NZ_UFZF01000006.1"]
+
 #131
 Ecoli_131 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_01_12_IMPALA_variant_calling/Ecoli/EcoliST131/2024_02_29_15_04_03_core_results/gubbins/2024_02_29_15_04_03_Ecoli_NCTC13441_ST131_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_131_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_01_12_IMPALA_variant_calling/Ecoli/EcoliST131/2024_02_29_15_04_03_core_results/gubbins/2024_02_29_15_04_03_Ecoli_NCTC13441_ST131_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta",format = "fasta", as.matrix=TRUE,as.character = TRUE)
-Ecoli_131_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_01_12_IMPALA_variant_calling/Ecoli/EcoliST131/2024_02_29_15_04_03_core_results/gubbins/iqtree_masked_wga/2024_02_29_15_04_03_Ecoli_NCTC13441_ST131_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_131_tree) + geom_tiplab2()
 # NZ_UFZF01000006.1
+
 #10
 Ecoli_10 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST10/2024_03_26_14_44_48_core_results/gubbins/2024_03_26_14_44_48_ST10_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_10_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST10/2024_03_26_14_44_48_core_results/gubbins/2024_03_26_14_44_48_ST10_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta",format = "fasta", as.matrix=TRUE,as.character = TRUE)
-Ecoli_10_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST10/2024_03_26_14_44_48_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_44_48_ST10_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_10_tree) + geom_tiplab()
-# IMPALA_45
 
 #1598
 Ecoli_1598 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1598/2024_03_26_14_46_44_core_results/gubbins/2024_03_26_14_46_44_ST1598_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_1598_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1598/2024_03_26_14_46_44_core_results/gubbins/2024_03_26_14_46_44_ST1598_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta", as.matrix=TRUE,as.character = TRUE)
-Ecoli_1598_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1598/2024_03_26_14_46_44_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_46_44_ST1598_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_1598_tree) + geom_tiplab2()
-# IMPALA_1201
 
 #1722
 Ecoli_1722 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1722/2024_03_26_14_48_41_core_results/gubbins/2024_03_26_14_48_41_ST1722_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_1722_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1722/2024_03_26_14_48_41_core_results/gubbins/2024_03_26_14_48_41_ST1722_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_1722_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST1722/2024_03_26_14_48_41_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_48_41_ST1722_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_1722_tree) + geom_tiplab2()
-# IMPALA_816
 
 #38
 Ecoli_38 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST38/2024_03_26_14_50_41_core_results/gubbins/2024_03_26_14_50_41_ST38_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_38_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST38/2024_03_26_14_50_41_core_results/gubbins/2024_03_26_14_50_41_ST38_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_38_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST38/2024_03_26_14_50_41_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_50_41_ST38_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_38_tree) + geom_tiplab2()
-# outgroup = IMPALA_1194
 
 #46
 Ecoli_46 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST46/2024_03_26_14_52_18_core_results/gubbins/2024_03_26_14_52_18_ST46_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_46_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST46/2024_03_26_14_52_18_core_results/gubbins/2024_03_26_14_52_18_ST46_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_46_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST46/2024_03_26_14_52_18_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_52_18_ST46_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_46_tree) + geom_tiplab2()
-# outgroup = IMPALA_1095
 
 #636
 Ecoli_636 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST636/2024_03_26_14_54_51_core_results/gubbins/2024_03_26_14_54_51_ST636_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_636_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST636/2024_03_26_14_54_51_core_results/gubbins/2024_03_26_14_54_51_ST636_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_636_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST636/2024_03_26_14_54_51_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_54_51_ST636_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_636_tree)+geom_tiplab()
-# outgroup = IMPALA_238
 
 #69
 Ecoli_69 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST69/2024_03_26_14_59_18_core_results/gubbins/2024_03_26_14_59_18_ST69_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_69_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST69/2024_03_26_14_59_18_core_results/gubbins/2024_03_26_14_59_18_ST69_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_69_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST69/2024_03_26_14_59_18_core_results/gubbins/iqtree_masked_wga/2024_03_26_14_59_18_ST69_genome_aln_w_alt_allele_unmapped.treefile")
-ggtree(Ecoli_69_tree) + geom_tiplab()
-# outgroup = IMPALA_677
 
 #757
 Ecoli_757 <- read.FASTA("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST757/2024_03_26_15_01_22_core_results/gubbins/2024_03_26_15_01_22_ST757_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", type = "DNA")
-Ecoli_757_var <- read.dna("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST757/2024_03_26_15_01_22_core_results/gubbins/2024_03_26_15_01_22_ST757_genome_aln_w_alt_allele_unmapped.filtered_polymorphic_sites.fasta", format = "fasta",as.matrix = TRUE, as.character = TRUE)
-Ecoli_757_tree <- read.tree("/Users/tifwan/Desktop/flux_mount_gl/Project_IMPALA/old_Sequence_data/output_files/2024_03_21_Ecoli_ST_based_variant_calling/ST757/2024_03_26_15_01_22_core_results/gubbins/iqtree_masked_wga/2024_03_26_15_01_22_ST757_genome_aln_w_alt_allele_unmapped.treefile")
 # outgroup =IMPALA_43
 ```
 
-# create distance matrices
-```{r echo=FALSE, results = FALSE}
-Ecoli_131_list <- get_ST_variant_call(Ecoli_131, "NZ_UFZF01000006.1")
-get_ST_variant_call(Ecoli_131)
-Ecoli_131_mat_vc <- Ecoli_131_list[[1]]
-Ecoli_131_mat_long_vc <- Ecoli_131_list[[2]]
-
-Ecoli_10_list <- get_ST_variant_call(Ecoli_10)
-Ecoli_10_mat_vc <- Ecoli_10_list[[1]]
-Ecoli_10_mat_long_vc <- Ecoli_10_list[[2]]
-
-Ecoli_1598_list <- get_ST_variant_call(Ecoli_1598)
-Ecoli_1598_mat_vc <- Ecoli_1598_list[[1]]
-Ecoli_1598_mat_long_vc <- Ecoli_1598_list[[2]]
-
-Ecoli_1722_list <- get_ST_variant_call(Ecoli_1722)
-Ecoli_1722_mat_vc <- Ecoli_1722_list[[1]]
-Ecoli_1722_mat_long_vc <- Ecoli_1722_list[[2]]
-
-Ecoli_38_list <- get_ST_variant_call(Ecoli_38)
-Ecoli_38_mat_vc <- Ecoli_38_list[[1]]
-Ecoli_38_mat_long_vc <- Ecoli_38_list[[2]]
-
-Ecoli_46_list <- get_ST_variant_call(Ecoli_46)
-Ecoli_46_mat_vc <- Ecoli_46_list[[1]]
-Ecoli_46_mat_long_vc <- Ecoli_46_list[[2]]
-
-Ecoli_636_list <- get_ST_variant_call(Ecoli_636)
-Ecoli_636_mat_vc <- Ecoli_636_list[[1]]
-Ecoli_636_mat_long_vc <- Ecoli_636_list[[2]]
-
-Ecoli_69_list <- get_ST_variant_call(Ecoli_69)
-Ecoli_69_mat_vc <- Ecoli_69_list[[1]]
-Ecoli_69_mat_long_vc <- Ecoli_69_list[[2]]
-
-Ecoli_757_list <- get_ST_variant_call(Ecoli_757)
-Ecoli_757_mat_vc <- Ecoli_757_list[[1]]
-Ecoli_757_mat_long_vc <- Ecoli_757_list[[2]]
-
-```
-# merge with pairwise SNV distance
+# create distance matrices from variant calling
 ```{r}
-Ecoli_SNV_long <- rbind(Ecoli_131_mat_long_vc,Ecoli_10_mat_long_vc, Ecoli_1598_mat_long_vc,Ecoli_1722_mat_long_vc,Ecoli_38_mat_long_vc, Ecoli_46_mat_long_vc, Ecoli_636_mat_long_vc, Ecoli_69_mat_long_vc, Ecoli_757_mat_long_vc)
+var_call_dist_ls <- lapply(fasta_ls, get_ST_variant_call)
+Ecoli_SNV_long <- map_dfr(var_call_dist_ls, 2)
+
+# transmission SNV cutoff
+cutoff <- 5 # specify SNV cutoff of interest
+Ecoli_SNV_long <- Ecoli_SNV_long  %>%
+  mutate(transmission = ifelse(dist <=cutoff, 1,0)) %>%
+  filter(X1 %in% meta$Sample & X2 %in% meta$Sample)
 
 ```
 
-
-
-# pairwise distance histogram 
+# meta data with demographic information of participants
 ```{r}
-ST <- c(rep("131",nrow(Ecoli_131_mat_long_vc)),rep("10",nrow(Ecoli_10_mat_long_vc)),rep("1598",nrow(Ecoli_1598_mat_long_vc)),rep("1722",nrow(Ecoli_1722_mat_long_vc)),rep("38",nrow(Ecoli_38_mat_long_vc)),rep("46",nrow(Ecoli_46_mat_long_vc)),rep("636",nrow(Ecoli_636_mat_long_vc)),rep("69",nrow(Ecoli_69_mat_long_vc)),rep("757",nrow(Ecoli_757_mat_long_vc)))
-
-ST_mat_long <- rbind(Ecoli_131_mat_long_vc, Ecoli_10_mat_long_vc, Ecoli_1598_mat_long_vc,Ecoli_1722_mat_long_vc,Ecoli_38_mat_long_vc,Ecoli_46_mat_long_vc, Ecoli_636_mat_long_vc, Ecoli_69_mat_long_vc, Ecoli_757_mat_long_vc)
-ST_mat_long$ST <- ST
-
-#Ecoli_SNV_long <- merge(Ecoli_SNV_long,msv_pairs, by = c("X1","X2"), all = TRUE) %>%
- # mutate(msv_pair = ifelse(is.na(msv),"No","Yes"))
-
-Ecoli_SNV_long <- ST_mat_long %>%
-  mutate(transmission = ifelse(dist <=5, 1,0))
-
-Ecoli_SNV_long %>%
-  ggplot() + geom_histogram(aes(x=dist, fill = as.factor(transmission)), alpha=.6) + geom_vline(xintercept=c(10,15), linetype = "dashed") + scale_x_continuous(limit = c(0,50)) + facet_wrap(.~ST, scales = "free_y") + labs(fill = "SNV<=5")
-
-ggsave("/Users/tifwan/University of Michigan Dropbox/Tiffany Wan/IMPALA-2/Manuscripts/Decriptive genomic epi paper/2025_04_26/supplemental_5.pdf")
-Ecoli_SNV_long <- Ecoli_SNV_long %>%
-  select(-ST)
-
-```
-# 
-```{r}
-# mat_long <- rbind(Ecoli_131_mat_long, Ecoli_10_mat_long, Ecoli_1598_mat_long,Ecoli_1722_mat_long, Ecoli_38_mat_long, Ecoli_46_mat_long, Ecoli_636_mat_long, Ecoli_69_mat_long, Ecoli_757_mat_long)
-
-ST_demo_sub1 <- ST_demo %>%
-  select(-c("site_location","isolate_numbers","external_participant_id","participant","date_of_admission","bed_num","ward","id_referring_subject","use_hhid_referring_subj","ass_new_hhid","rsns_for_hospitilization","othr_cr_area","participant_age","othr_rsn_hos","sele_hos_name","spec_othr_rsn_hos_2","othr_cr_area_2","spec_num_dys","Prep method","whch_cntry_trvalled_4___4","Sequencing plate","pst_thre_mnth_hos_any_rsn","fo_hw_mny_days_hosp","hw_mny_days_fr_disc_enr","spec_num_dys_frm_dis_enrl","wht_cr_area_hospitilized","fo_hw_mny_days_hosp_2","othr_rsns_travelling","hsehld_id","num_cmpl_dt_antibio_enrll","spec_num_dys_anti_tkn","no_cmpltn_dt_anti_knwn","pst_thremnth_antbio_use","num_dys_antibio_tkn","pst6mnth_mbr_vst_cl_mdcl_9","pst6mnth_mbr_vst_hs_nt_mc9","pst6mnth_mbr_vst_cl_nt_mc9")) %>%
-  select(-contains(c("whch_cntry_trvalled","hospitalizations","fo_hw_mny_days_hosp","rsns_for_travel","no_dys_thr","rsns_for_hospitilization","wht_cr_area_hospitilized", "hw_mny_days_fr_disc_enr","trvl_episodes","spec_antibio_nam","no_of_antibiotics", "whr_antibio_obtnd","spec_num_dys_fr_dis_enrl","num_cmpl_dt_antibio_enrl", "spec_num_dys_anti_tkn","no_cmpltn_dt_anti_knwn","nam_antibio","num_dys_antibio_tkn","hw_mny_dys_out_ctry","othr_rsn_hos","hw_mny_dys_rtn_enrl","spec_num_dys","pst6mnth_mbr_vst_hs_mdcl","household_members","othr","cntry","num_days","sele_clinic_nam")))
-
-ST_demo_sub1[,c("hw_ftn_visit_hos_med_care","hw_oftn_vst_clinic_med_cr","hw_oftn_vst_clnc_nt_med_cr","hw_oftn_vst_hs_not_medcr","grow_crps","tend_livstck_home","tend_pltry_home","tend_swine_home","tend_livstck_farm","tend_pltry_farm","tend_swine_farm","catch_handle_fish","prep_fish_chickn_consup","handle_trt_disp_waste","livestock_cattle_goats","chicken","turkeys_ducks","horses_donkeys","swine","grw_tend_crps_9","tend_livestock_hme_9","tend_poultry_hme_9","tend_swine_hme_9","tend_livestock_farm_9","tend_poultry_farm_9")]  <- apply(ST_demo_sub1[,c("hw_ftn_visit_hos_med_care","hw_oftn_vst_clinic_med_cr","hw_oftn_vst_clnc_nt_med_cr","hw_oftn_vst_hs_not_medcr","grow_crps","tend_livstck_home","tend_pltry_home","tend_swine_home","tend_livstck_farm","tend_pltry_farm","tend_swine_farm","catch_handle_fish","prep_fish_chickn_consup","handle_trt_disp_waste","livestock_cattle_goats","chicken","turkeys_ducks","horses_donkeys","swine","grw_tend_crps_9","tend_livestock_hme_9","tend_poultry_hme_9","tend_swine_hme_9","tend_livestock_farm_9","tend_poultry_farm_9")], 2, function(x){
-  r = ifelse(grepl("Not once",x)|grepl("Unknown",x)|grepl("Less than 1 day a week",x)|grepl("Other",x)|grepl("Never",x),0,1)
-  return(r)
-})
-ST_demo_sub2 <- ST_demo_sub1 %>%
-  #select(Sample,ST, age1,hhid,location,participant_type,participant_type1,social,lockdown) %>%
-  mutate(region = case_when(location %in% c("Bokaa Clinic","Boseja Clinic","Deborah Retief Memorial Hospital")~"Mochudi",
-                            location %in% c("Borakalalo Clinic","Phuthadikobo Clinic","Scottish Livingstone Referral Hospital") ~"Molepolele",
-                            location %in% c("Julia Molefhe Clinic","Nkoyaphiri Clinic","Princes Marina Hospital") ~"Gaborone"))
-#Ecoli_meta_match <- Ecoli_meta_match[,c("age1","hhid_match","location","participant_type","participant_type1","social_no_hh_match")]
+# subsetting
+meta <- readRDS( "data/meta.rds")
 ```
 
 
 ```{r}
-# merge and matke sure the two data frames are in the same order
-Ecoli_meta_long1 <- merge(Ecoli_SNV_long , ST_demo_sub2, by.x ="X1" ,by.y = "Sample", all.x = TRUE) %>%
+# merge and make sure the two data frames are in the same order
+Ecoli_meta_long1 <- merge(Ecoli_SNV_long , meta , by.x ="X1" ,by.y = "Sample", all.x = TRUE) %>%
   arrange(X1, X2)
-Ecoli_meta_long2 <- merge(Ecoli_SNV_long , ST_demo_sub2, by.x ="X2" ,by.y = "Sample", all.x = TRUE) %>%
+Ecoli_meta_long2 <- merge(Ecoli_SNV_long , meta , by.x ="X2" ,by.y = "Sample", all.x = TRUE) %>%
   arrange(X1, X2)
 
+match_mat<- Ecoli_meta_long1[,7:13]== Ecoli_meta_long2[,7:13] %>% as.matrix()
+match_mat <- ifelse(match_mat, as.matrix(Ecoli_meta_long1[,7:13]), "No")
 
-
-Ecoli_meta_match <- Ecoli_meta_long1
-
-Ecoli_meta_match <- Ecoli_meta_match %>%
-  select(-collection_date) %>%
-  filter((X1%in%ST_demo_sub2$Sample) & (X2%in%ST_demo_sub2$Sample))
-for (row in 1:nrow(Ecoli_meta_match)){
-  for (col in 7:ncol(Ecoli_meta_match)){
-    var <- colnames(Ecoli_meta_match)[col]
-    p1 <- Ecoli_meta_match$X1[row]
-    p2 <- Ecoli_meta_match$X2[row]
-    if (var%in% c("hw_ftn_visit_hos_med_care","hw_oftn_vst_clinic_med_cr","hw_oftn_vst_clnc_nt_med_cr","hw_oftn_vst_hs_not_medcr","cheese1___2","cheese1___3","cow_milk___1","cow_milk___2","cow_milk___3","cow_milk___5","eggs1___1","eggs1___2","eggs1___3","eggs1___4","eggs1___5","frsh_fruit___1","frsh_fruit___2","frsh_fruit___4","frsh_fruit___5","frsh_veg___1","frsh_veg___2","frsh_veg___3","frsh_veg___4","frsh_veg___5","goat_milk___1","goat_milk___2","goat_milk___3","goat_milk___5","is_par_hos_patient","main_src_drnkn_watr___1","main_src_drnkn_watr___10","main_src_drnkn_watr___11","main_src_drnkn_watr___12","main_src_drnkn_watr___13","main_src_drnkn_watr___14","main_src_drnkn_watr___2","main_src_drnkn_watr___3","main_src_drnkn_watr___4","main_src_drnkn_watr___5","main_src_drnkn_watr___6","main_src_drnkn_watr___9","main_src_wtr_nt_drnkn___1","main_src_wtr_nt_drnkn___10","main_src_wtr_nt_drnkn___11","main_src_wtr_nt_drnkn___12","main_src_wtr_nt_drnkn___13","main_src_wtr_nt_drnkn___14","main_src_wtr_nt_drnkn___2","main_src_wtr_nt_drnkn___3","main_src_wtr_nt_drnkn___4","main_src_wtr_nt_drnkn___5","main_src_wtr_nt_drnkn___6","main_src_wtr_nt_drnkn___9","meat___1","meat___2","meat___3","meat___4","meat___5","poultry___1","poultry___2","poultry___3","poultry___4","poultry___5","seafood___2","seafood___3","seafood___4","seafood___6","yogurt___2","grow_crps","tend_livstck_home","tend_pltry_home","tend_swine_home","tend_livstck_farm","tend_pltry_farm","tend_swine_farm","catch_handle_fish","prep_fish_chickn_consup","handle_trt_disp_waste","livestock_cattle_goats","chicken","turkeys_ducks","horses_donkeys","swine","grw_tend_crps_9","tend_livestock_hme_9","tend_poultry_hme_9","tend_swine_hme_9","tend_livestock_farm_9","tend_poultry_farm_9")){
-      if (is.na(ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p1)])|is.na(ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p2)])){
-        Ecoli_meta_match[row,col] <- NA}
-      else if (ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p1)]== ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p2)]){
-        Ecoli_meta_match[row,col] <- "Yes"
-      }
-      else {
-        Ecoli_meta_match[row,col] <- "No"
-      }
-      }
-    else if(is.na(ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p1)])|is.na(ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p2)])){
-      Ecoli_meta_match[row,col] <- NA
-    }
-    
-    else if (ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p1)]== ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p2)]){
-      Ecoli_meta_match[row,col] <- ST_demo_sub2[[var]][which(ST_demo_sub2$Sample==p1)]
-    }
-
-    
-    else{
-       Ecoli_meta_match[row,col] <- "No"
-    } 
-  }
-}
-
-# 
-# for (row in 1:nrow(Ecoli_meta_long1)){
-#   for (col in 11:ncol(Ecoli_meta_long1)){
-#     if ( is.na(Ecoli_meta_long1[row,col])|is.na(Ecoli_meta_long2[row,col])){
-#       Ecoli_meta_match[row,col] <- NA
-#     }
-#     else if ( Ecoli_meta_long1[row,col]==Ecoli_meta_long2[row,col]){
-#       Ecoli_meta_match[row,col] <- Ecoli_meta_long1[row,col]
-#     }
-#     else{
-#        Ecoli_meta_match[row,col] <- "No"
-#     } 
-#   }
-# }
+Ecoli_meta_match <- cbind(Ecoli_meta_long1[,1:6],match_mat)
 
 # rename some of the variables
 Ecoli_meta_match <- Ecoli_meta_match %>%
@@ -273,300 +105,50 @@ Ecoli_meta_match <- Ecoli_meta_match %>%
   
   filter(!is.na(lockdown))
 
-Ecoli_meta_match <- Ecoli_meta_match %>%
-  filter(!ST %in% c("-","No"))
-table(Ecoli_meta_match$ST)
-
-# # filter out pairs from the same participants and with the same ST
-# Ecoli_distmat_var_long1 <- Ecoli_distmat_var_long1 %>%
-#   filter(!(participant=="Yes" & ST =="Yes"))
 ```
 
 ```{r}
 # unorder variables, and set refernece value at 'No'
-
-Ecoli_meta_match[,10:ncol(Ecoli_meta_match)] <- apply(Ecoli_meta_match[,10:ncol(Ecoli_meta_match)], 2, function(x){
+Ecoli_meta_match[,6:ncol(Ecoli_meta_match)] <- apply(Ecoli_meta_match[,6:ncol(Ecoli_meta_match)], 2, function(x){
   x <- factor(x, ordered = FALSE)
   if ("No" %in% x){
     x <- relevel(x, ref = "No")
   }
-  
 })
-
-```
-
-# Same household pairwise distance
-```{r}
-Ecoli_meta_match %>%
-  filter(hhid_match=="Yes" & lockdown!="No") %>%
-  ggplot() + geom_bar(aes(x = dist, ))+ scale_x_continuous(limits = c(-1,30)) + geom_vline(xintercept =5, color =5) + theme_bw() +
-    theme(
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor = element_blank(),
-      axis.text.x = element_text(angle = 30, vjust =0),
-      legend.position = "bottom")
-
-ggsave("/Users/tifwan/University of Michigan Dropbox/Tiffany Wan/IMPALA-2/Manuscripts/Decriptive genomic epi paper/2025_04_26/figure5a.pdf", width = 7, height = 4)
-
-table(Ecoli_meta_match[Ecoli_meta_match$lockdown!="No",]$hhid_match, Ecoli_meta_match[Ecoli_meta_match$lockdown!="No",]$dist<=5)
-# len_na <- apply(Ecoli_meta_match, 1, function(x){
-#   sum(!is.na(x))})
-#Ecoli_meta_match <- Ecoli_meta_match[,c("age1","hhid_match","location","participant_type","participant_type1","social_no_hh_match")]
-hh_pair_df <- Ecoli_meta_match %>%
-  filter(hhid_match=="Yes" & lockdown!="No")
-```
-
-```{r}
-covar <- colnames(Ecoli_meta_match[7:ncol(Ecoli_meta_match)])
-#covar <- c("loc_match2", "region_match2", "lockdown_match1", "social_no_hh_match", "hhid_match","loc_type_match2","age_match")
-
-remove_var <- c("hhid","social")
-var_ls <- sapply(Ecoli_meta_match, function(x){
-  unique(x)
-})
-for (i in names(var_ls)){
-  if (length(var_ls[[i]])==1 | length(setdiff(var_ls[[i]],c("No","0","NA")))<=1){
-    remove_var <- c(remove_var, i)
-  }
-}
-
-
-remove_var <- remove_var [remove_var!="social_no_hh_match"]
-covar <- covar[!covar %in% remove_var]
-
-msv_model_ls <- lapply(covar, function(inde_var){
-  msv_model <- glm(transmission ~ get(inde_var), data = Ecoli_meta_match, family= binomial(link = "logit"))
-})
-
-# Collapse models into dataframe for easy inspection
-msv_models_df <- data.frame()
-  for(j in 1:length(covar)){
-    msv_models_df <- rbind(msv_models_df,
-                       data.frame(var = covar[j], # the covariates
-                                as.data.frame(coef(summary(msv_model_ls[[j]])))%>%
-                                              rownames_to_column(var="covariates"))) # the model fit
-  }
-
-msv_models_df <- msv_models_df %>%
-  mutate(threshold_c = case_when(Pr...z..<0.05 ~ "P - value < 0.05",
-                                 Pr...z..> 0.05 & Pr...z..<0.2 ~ "0.05 < P-value < 0.2",
-                                 Pr...z..>0.2 ~ "P-value > 0.2"),
-         odds = exp(Estimate)) # whether p-value is below below 0.05, or 0.2 
-
-
-```
-
-# test if pre-post lockdown have difference in transmission
-```{r}
-
-lockdown_pair_df <- Ecoli_meta_match [Ecoli_meta_match $lockdown!="No",]
-table(lockdown_pair_df$ST)
-table(lockdown_pair_df$lockdown)
-table(lockdown_pair_df$transmission, lockdown_pair_df$lockdown)
-chisq.test(as.factor(lockdown_pair_df$transmission), lockdown_pair_df$lockdown, correct = T)
-
-#length(unique(lockdown_pair_df$hhid[lockdown_pair_df$participant_live_same_hh=="Yes"]))
-```
-
-
-
-
-
-```{r}
-Ecoli_meta_match$transmission <- as.factor(Ecoli_meta_match$transmission)
-Ecoli_meta_match %>%
-    filter(!is.na(lockdown)) %>%
-   filter(hhid=="No") %>%
-    ggplot(aes(x = dist)) +
-    geom_density(aes(fill = lockdown),alpha = 0.6, color = NA, adjust=0.3) +
-    scale_fill_discrete(labels = c(
-      "pre" = paste("Pre-lockdown ( N=", length(which(Ecoli_meta_match$lockdown=="pre")),")"),
-      "post" = paste("Post-lockdown  ( N=", length(which(Ecoli_meta_match$lockdown=="post")),")"))) +
-    labs(x = "SNP", y = "%") +
-    scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, 10)) 
-#ggsave("~/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures_with_3rd_batch/same_ST_lockdown_density.pdf", height = 5, width = 7)
-```
-
-
-
-
-```{r}
-
-
-Ecoli_meta_match <- Ecoli_meta_match %>%
-  filter(!is.na(lockdown))
-for (i in c("131","10","69","1722","757","1598")){
-  for( var in c("region","participant_type1","location")){
-    g <- create_graph(Ecoli_meta_match,c(i))
-  lay <- create_layout(g,layout = 'fr')
-
-  print(
-    ggraph(lay)  + geom_edge_link(aes(color = lockdown),alpha=.5) + geom_node_point(aes(color = get(var))) +scale_edge_color_manual(values= c("pre" = "#80CDC1","post"="#D01C8B","No"="#FDE725FF")) +theme_void() + labs(title = paste("ST:",i)) +scale_color_viridis_d()
-  )
-  ggsave(paste0("~/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures_with_3rd_batch/network/network_",i,"_",var,".pdf"))  
-
-  }
-}
-
-# all ST
-Ecoli_meta_match <- Ecoli_meta_match %>%
-  filter(!is.na(lockdown))
-
-
-g <- create_graph(Ecoli_meta_match,c("131","10","69","1722","757","1598"))
-lay <- create_layout(g,layout = 'nicely')
-
-ggraph(lay)  + geom_edge_link(aes(color = lockdown),alpha=.5) + geom_node_point(aes(color = ST),alpha=.8) +scale_edge_color_manual(values= c("pre" = "#80CDC1","post"="#D01C8B","No"="#FDE725FF")) +theme_void() +scale_color_viridis_d() + facet_wrap(lockdown~.)
-
-#ggsave("~/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures_with_3rd_batch/pre_post_ST_network.pdf", height = 5, width = 10)  
-
-
-
-
-```
-
-```{r}
-create_graph <- function(dist_mat_long, condition){
-  #test data
-   # dist_mat_long = Ecoli_meta_match1
-   # hclust_df = hclust_Ecoli
-   # condition = c("131")
-   # n = 10
-   # height =10
-  
-  trans_edge <- dist_mat_long %>%
-  #filter(ST_match=="Yes") %>%
-  #mutate(dist = as.numeric(dist)) %>%
-  filter(transmission==1) %>% 
-  filter(ST %in% condition) %>%
-  select(X1,X2,lockdown) #%>%
-  #filter(lockdown!="No")
-
-  pt_node <- data.frame(nodes = unique(c(trans_edge$X1,trans_edge$X2))) %>%
-    merge(ST_demo[,c("Sample","ST","lockdown","participant_type","participant_type1","location","participant_live_same_hh","referred_by_another")], by.x = "nodes", by.y = "Sample")
-
-  # create graph from data frames
-  g = tbl_graph(pt_node,trans_edge,  directed = FALSE) %>% activate(nodes)%>%
-    
-    mutate(group = group_fast_greedy(),
-           region = case_when(location %in% c("Bokaa Clinic","Boseja Clinic","Deborah Retief Memorial Hospital")~"Mochudi",
-                            location %in% c("Borakalalo Clinic","Phuthadikobo Clinic","Scottish Livingstone Referral Hospital") ~"Molepolele",
-                            location %in% c("Julia Molefhe Clinic","Nkoyaphiri Clinic","Princes Marina Hospital") ~"Gaborone"))
-  
-  return(g)
-}
-
-for (i in c("131","10","69","1722","757","1598")){
-  for( var in c("region","location","participant_type1","participant_type","participant_live_same_hh")){
-    g <- create_graph(Ecoli_meta_match,c(i))
-  lay <- create_layout(g,layout = 'fr')
-
-  print(
-    ggraph(lay)  + geom_edge_link(aes(color = lockdown),alpha=.5) + geom_node_point(aes(color = get(var)),alpha=.8) +scale_edge_color_manual(values= c("pre" = "#2A788EFF","post"="#440154FF","No"="#FDE725FF")) +theme_void() + labs(title = paste("ST:",i)) #+scale_color_manual(values= c("Hospital patient" = "red","Community/Clinic"="yellow"))
-  )
-  
-  }
-}
-
 ```
 
 # pre-post lockdown model
 
 # subsetting pre and post models
 ```{r}
-# excluding 1722
-# subsetting data w/o 1722
-pre_Ecoli_meta <- Ecoli_meta_match %>%
-  filter(lockdown=="pre") %>%
-  filter(ST!="1722")
-
-post_Ecoli_meta <- Ecoli_meta_match %>%
-  filter(lockdown=="post") %>%
-  filter(ST!="1722")
-
-table(Ecoli_meta_match$lockdown)
-
 pre_Ecoli_meta_all <- Ecoli_meta_match %>%
   filter(lockdown=="pre")
-
-table(pre_Ecoli_meta_all$location)
 
 post_Ecoli_meta_all <- Ecoli_meta_match %>%
   filter(lockdown=="post")
 ```
-```{r}
-for(lockdown_v in c("pre","post")){
-  for (var in  c("hhid_match","location","participant_type", "region","social_no_hh_match")){
-  if(var =="hhid_match"){
-    # df <- Ecoli_meta_match %>%
-    #   filter(lockdown =="pre") %>%
-    #   filter(!is.na(hhid_match)) %>%
-    #   group_by(ST, transmission) %>%
-    #   mutate(ST_count = n()) %>%
-    #   group_by(ST, get(var), transmission) %>%
-    #   summarise(var_prop = n()/ST_count) %>%
-    #   distinct()
-    
-      g <- Ecoli_meta_match %>%
-        filter(lockdown ==lockdown_v) %>%
-      filter(!is.na(hhid_match)) %>%
-       filter(get(var)!="No") %>%
-         ggplot() + geom_bar(aes(x =get(var), fill=transmission)) + facet_wrap(.~ST, scales = "free_y")  + labs(title = var) + theme(axis.text.x = element_text(angle = 45,hjust =1))
-      print(g)
-  #    g <- df %>%
-  # filter(!is.na(hhid_match)) %>%
-  # ggplot() + geom_jitter(aes(y = transmission, x = var_prop, color = ST))+ facet_wrap(.~ST, ncol = 5) + labs(title = var)
-  # print(g) 
-  }
-  else{
-     g <- Ecoli_meta_match %>%
-        filter(lockdown ==lockdown_v) %>%
-      filter(hhid_match!="Yes"| is.na(hhid_match)) %>%
-       filter(get(var)!="No") %>%
-         ggplot() + geom_bar(aes(x =get(var), fill=transmission)) + facet_wrap(.~ST, scales = "free_y")  + labs(title = paste0(var," ",lockdown_v,"-lockdown")) + theme(axis.text.x = element_text(angle = 45,hjust =1))
-      print(g)
-    
-  }
- 
-}
-}
 
-post_match_1722 <- post_Ecoli_meta_all %>%
-  filter(ST=="1722" & participant_type=="Hospital patient") %>%
-  select(X1, X2, transmission, participant_type,location)
-```
 
+# variables to test for univariate models
 ```{r}
-### SNV distance sensitivity analysis
 # create covar
-pre_covar <- colnames(Ecoli_meta_match[7:ncol(Ecoli_meta_match)])
+pre_covar <- colnames(Ecoli_meta_match[6:ncol(Ecoli_meta_match)])
 pre_covar <- pre_covar[pre_covar!="lockdown"]
 remove_var <- c("hhid","social")
 pre_covar <- pre_covar[!pre_covar %in% remove_var]
 
 # create covar
-post_covar <- colnames(Ecoli_meta_match[7:ncol(Ecoli_meta_match)])
+post_covar <- colnames(Ecoli_meta_match[6:ncol(Ecoli_meta_match)])
 post_covar <- post_covar[post_covar!="lockdown"]
 remove_var <- c("hhid","social")
 post_covar <- post_covar[!post_covar %in% remove_var]
 ```
 
+# fit models
 ```{r}
-## might need to try brms - bayesian stuff because they are just not converging
 
+# variables 
 lockdown_var <- c("hhid_match","location","participant_type", "region","social_no_hh_match")
-# # for all the pre-covid variables
-# pre_model_df <- data.frame()
-# for (var in lockdown_var){
-#   new_df <- fit_mixed_log_model(df = pre_Ecoli_meta, dep_var = "transmission", indep_var = var)
-#   pre_model_df <- rbind(pre_model_df, new_df)
-# }
-# 
-# post_model_df <- data.frame()
-# for (var in lockdown_var){
-#   new_df <- fit_mixed_log_model(df = post_Ecoli_meta, dep_var = "transmission", indep_var = var)
-#   post_model_df <- rbind(post_model_df, new_df)
-# }
 
 # for all the pre-covid variables
 pre_model_df_all <- data.frame()
@@ -596,104 +178,9 @@ for (var in lockdown_var){
   post_model_df_all <- rbind(post_model_df_all, new_df)
 }
 
-# location is unable to converge so use bayesian method instead to run model
 ```
-# Bayesian fixed effect transmission risk for location
-
-# this is just a temporary fix, gotta do the trycatch thing
+## Compile fit results
 ```{r}
-# run the mixed effect model first (becasue var_cat in the bayesian model fit depends on its output)
-# location
-# # pre-lockdown
-# bayes_model_fit <- function(df, dep_var,indep_var, var_cat){
-# #   dep_var = "transmission"
-# # indep_var = "location"
-# # var_cat <- pre_model_df$var_cat[pre_model_df$var==indep_var]
-# # df = pre_Ecoli_meta_all
-# sub_df <- df %>%
-#   filter(!is.na(get(indep_var)))
-# ### Bayesian model ###
-# model <- stan_glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2) , 
-#                data = sub_df,
-#                family = binomial(link = "logit"),
-#                iter = 2000,
-#                warmup = 1000,
-#                chains =4,
-#                control = list(adapt_delta = 0.95))
-# # estimates
-# estimates <- fixef(model)[-1] # remove intercept term
-# # p-value
-# posterior <- as.matrix(model)
-# p_val <- c()
-# for (loc in var_cat){
-#   p_val = c(p_val,setNames(mean(posterior[,loc]>0),loc))
-#   # print(p_val)
-# }
-# # odds
-# odds <- exp(estimates) 
-# # confidence interval
-# lowerCI = c()
-# upperCI = c()
-# for (loc in var_cat){
-#    lowerCI = c(lowerCI, setNames(posterior_interval(model,prob = 0.95)[loc,1],loc))
-#    upperCI = c(upperCI, setNames(posterior_interval(model,prob = 0.95)[loc,2],loc))
-# }
-# 
-# bayes_model_df <- data.frame(
-#   var = "location",
-#   var_cat = var_cat,
-#   est = estimates,
-#   p.value = p_val,
-#   odds = odds,
-#   lowerCI = lowerCI,
-#   upperCI = upperCI
-# )
-# return(bayes_model_df)
-# }
-# 
-# #   dep_var = "transmission"
-# # indep_var = "location"
-# # var_cat <- pre_model_df$var_cat[pre_model_df$var==indep_var]
-# # df = pre_Ecoli_meta_all
-# var_cat <- pre_model_df_all$var_cat[pre_model_df_all$var=="location"]
-# pre_baye_model_df <- bayes_model_fit(df = pre_Ecoli_meta_all, dep_var = "transmission",indep_var = "location", var_cat = var_cat)
-# var_cat <- post_model_df_all$var_cat[post_model_df_all$var=="location"]
-# post_baye_model_df <- bayes_model_fit(df = post_Ecoli_meta_all, dep_var = "transmission",indep_var = "location", var_cat = var_cat)
-# 
-# # add the bayesian model outputs
-# pre_model_df_all <- pre_model_df_all %>%
-#   filter(var!="location") %>%
-#   select(-fit) %>%
-#   rbind(pre_baye_model_df)
-# 
-# post_model_df_all <- post_model_df_all %>%
-#   filter(var!="location") %>%
-#   select(-fit) %>%
-#   rbind(post_baye_model_df)
-# 
-# # 
-# # # post-lockdown
-# # post_sub_df <- post_Ecoli_meta_all %>%
-# #   filter(!is.na(get(indep_var)))
-# # ### Bayesian model ###
-# # post_stan_model <- stan_glmer(get(dep_var) ~ get(indep_var) + (1 | X1) + (1 | X2) , 
-# #                data = sub_df,
-# #                family = binomial(link = "logit"),
-# #                iter = 2000,
-# #                warmup = 1000,
-# #                chains =4,
-# #                control = list(adapt_delta = 0.95))
-# # 
-# # fixef(post_stan_model)
-
-```
-
-
-## pre-post lockdown proportions
-```{r}
-library(cowplot)
-# lockdown_var <- intersect(pre_covar,post_covar)
-# lockdown_var <- lockdown_var[!lockdown_var%in%c("meat___6","poultry___6","eggs1___6","cow_milk___6","goat_milk___6","yogurt___6","cheese1___6","frsh_fruit___6","frsh_veg___6","referred_by_another","participant_live_same_hh")]
 Ecoli_pre_df <- Ecoli_meta_match %>%
   filter(lockdown=="pre")
 
@@ -717,89 +204,12 @@ lockdown_df <- lockdown_df %>%
   #group_by(group,  Lockdown) %>%
   mutate(p_adjust = p.adjust(p.value, method = "bonferroni"),
          FDR = p.adjust(p.value, method ="BH"))
-#lockdown_df$variables <- factor(lockdown_df$variables, levels=c("No","Yes","Bokaa Clinic","Borakalalo Clinic","Boseja Clinic","Julia Molefhe Clinic","Nkoyaphiri Clinic","Phuthadikobo Clinic","Princes Marina Hospital","Scottish Livingstone Referral Hospital","Deborah Retief Memorial Hospital","Gaborone","Clinic patient","Mochudi","Molepolele","Community adult","Community child","Hospital patient","Community/Clinic","Hospital","age <= 5","age 6 to 18","age > 18"))
+
 # relevel the variable for plotting
 lockdown_df$Lockdown <- factor(lockdown_df$Lockdown, levels=c("Pre-Lockdown","Post-Lockdown"))
-
-g <- lockdown_df %>%
-  group_by(group, variables,Lockdown) %>%
-  mutate(prop = Freq/sum(Freq)) %>%
-  filter(Pair_SNV_bool==1)  %>%
-  mutate(`p<0.05` = ifelse(p.value<=0.05 & odds >=1,"*",""),
-         `FDR<0.05` = ifelse(FDR<0.05, "*","")) %>%
-  mutate(`Shared risk` = ifelse(variables=="No","No","Yes")) %>%
-  filter(group!="participant_type1") %>%
-  ggplot() + geom_col(aes(x = variables, y= prop*100, fill = `Shared risk`)) +geom_text(aes(x = variables,label = `p<0.05`),y = 1, size = 7)  + labs( y = "% Transmission pairs with shared demographics",x = "Demographics")+ scale_fill_viridis_d(name = "Shared\ndemographics", label =c("0"="No","1"="Yes")) +theme_void()+ theme_bw() + theme(axis.text.x = element_text(angle = 40,hjust = 1), panel.grid.major.x = element_blank(), panel.grid.minor = element_blank()) + facet_wrap(Lockdown~group, scales = "free",ncol=8) # + ggh4x::facet_grid2(Lockdown~group,scales = "free_x", independent = "x")
-g
-#ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/bar_wo_1722.pdf",  height = 30,width = 15)
-
-#lockdown_df$variables <- factor(lockdown_df$variables, levels=c("No","Princes Marina Hospital","Nkoyaphiri Clinic","Julia Molefhe Clinic","Deborah Retief Memorial Hospital","Boseja Clinic","Bokaa Clinic","Scottish Livingstone Referral Hospital","Phuthadikobo Clinic","Borakalalo Clinic","Gaborone","Mochudi","Molepolele","Yes","Clinic","Hospital","age <= 5","age 6 to 18","age > 18"))
-
-lockdown_df %>%
-  group_by(group, variables,Lockdown) %>%
-  mutate(prop = Freq/sum(Freq)) %>%
-  filter(Pair_SNV_bool==1) %>%
-  #filter(Lockdown=="Post-Lockdown") %>%
-  filter(!is.na(variables) & variables!="No") %>%
-  #filter(group != "location") %>%
-  ggplot(aes(x = odds, y = variables)) + 
- geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed", color = "red") +
-geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI), size = .5, height = 
-.2, color = "gray50") +
-   geom_point(x = 0, y = 1,alpha=0) + 
- geom_point(size = 3.5, color = "orange") +
- theme_bw() + ggh4x::facet_grid2(group~Lockdown, scales = "free", independent = "x") 
-#ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/CI_error_wo_1722.pdf", width = 10,height = 9)
-# 
-# ## plots including 1722
-# pre_summary <- create_pair_summary(stats_df = pre_test_df_all, pairiwise_var_df = pre_Ecoli_meta_all, var_v = lockdown_var)
-# post_summary <- create_pair_summary(stats_df = post_test_df_all, pairiwise_var_df = post_Ecoli_meta_all , var_v = lockdown_var)
-# 
-# lockdown_df <- pre_summary[[2]] %>%
-#   mutate(Lockdown = "Pre-Lockdown") %>%
-#   merge(pre_summary[[1]][,c("group","variables","p.value","odds", "upperCI","lowerCI")],by = c("group","variables")) %>%
-#   rbind(post_summary[[2]] %>% mutate(Lockdown = "Post-Lockdown") %>% merge(post_summary[[1]][,c("group","variables","p.value","odds", "upperCI","lowerCI")],by = c("group","variables")))
-# 
-# lockdown_df <- lockdown_df %>%
-#   group_by(group, Lockdown,Pair_SNV_bool) %>%
-#   mutate(uniq_var_n = length(unique(variables))) %>%
-#   filter(uniq_var_n>1 )
-# 
-# #lockdown_df$variables <- factor(lockdown_df$variables, levels=c("No","Yes","Bokaa Clinic","Borakalalo Clinic","Boseja Clinic","Julia Molefhe Clinic","Nkoyaphiri Clinic","Phuthadikobo Clinic","Princes Marina Hospital","Scottish Livingstone Referral Hospital","Deborah Retief Memorial Hospital","Gaborone","Clinic patient","Mochudi","Molepolele","Community adult","Community child","Hospital patient","Community/Clinic","Hospital","age <= 5","age 6 to 18","age > 18"))
-# # relevel the variable for plotting
-# lockdown_df$Lockdown <- factor(lockdown_df$Lockdown, levels=c("Pre-Lockdown","Post-Lockdown"))
-# g <- lockdown_df %>%
-#   group_by(group, variables,Lockdown) %>%
-#   mutate(prop = Freq/sum(Freq)) %>%
-#   filter(Pair_SNV_bool==1) %>%
-#   mutate(`p<0.05` = ifelse(p.value<=0.05 & odds >=1,"*","")) %>%
-#   mutate(`Shared risk` = ifelse(variables=="No","No","Yes")) %>%
-#   filter(group!="participant_type1") %>%
-#   ggplot() + geom_col(aes(x = variables, y= prop*100, fill = `Shared risk`)) +geom_text(aes(x = variables,label = `p<0.05`),y = 1, size = 7) + labs( y = "% Transmission pairs with shared demographics",x = "Demographics")+ scale_fill_viridis_d(name = "Shared\ndemographics", label =c("0"="No","1"="Yes")) +theme_void()+ theme_bw() + theme(axis.text.x = element_text(angle = 40,hjust = 1), panel.grid.major.x = element_blank(), panel.grid.minor = element_blank()) + facet_wrap(Lockdown~group, scales = "free",ncol=8) #+ ggh4x::facet_grid2(Lockdown~group,scales = "free_x", independent = "x") 
-# g
-# #ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/bar.pdf",  height = 30,width = 15)
-# 
-# lockdown_df$variables <- factor(lockdown_df$variables, levels=c("No","Princes Marina Hospital","Nkoyaphiri Clinic","Julia Molefhe Clinic","Deborah Retief Memorial Hospital","Boseja Clinic","Bokaa Clinic","Scottish Livingstone Referral Hospital","Phuthadikobo Clinic","Borakalalo Clinic","Gaborone","Mochudi","Molepolele","Yes","Clinic","Hospital","age <= 5","age 6 to 18","age > 18"))
-# 
-# lockdown_df %>%
-#   group_by(group, variables,Lockdown) %>%
-#   mutate(prop = Freq/sum(Freq)) %>%
-#   filter(Pair_SNV_bool==1) %>%
-#   #filter(Lockdown=="Post-Lockdown") %>%
-#   filter(!is.na(variables) & variables!="No") %>%
-#   #filter(group != "location") %>%
-#   ggplot(aes(x = odds, y = variables)) + 
-#  geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed", color = "red") +
-# geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI), size = .5, height = 
-# .2, color = "gray50") +
-#    geom_point(x = 0, y = 1,alpha=0) + 
-#  geom_point(size = 2, color = "orange") +
-#  theme_bw() + ggh4x::facet_grid2(group~Lockdown, scales = "free", independent = "x") 
-# #ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/CI_error.pdf",  height = 30,width = 15)
-# #ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/post_CI_error.pdf", width =10,height = 10)
-
 ```
 
+# plot results
 ```{r}
 lockdown_var <- c("age1", "hhid_match","location","participant_type", "region","social_no_hh_match")
 lockdown_df$variables<- factor(lockdown_df$variables, levels=c("No","Yes","Bokaa Clinic","Borakalalo Clinic","Boseja Clinic","Julia Molefhe Clinic","Nkoyaphiri Clinic","Phuthadikobo Clinic","Princes Marina Hospital","Scottish Livingstone Referral Hospital","Deborah Retief Memorial Hospital","Gaborone","Clinic patient","Mochudi","Molepolele","Community adult","Community child","Hospital patient","Community/Clinic","Hospital","age <= 5","age 6 to 18","age > 18"))
@@ -834,92 +244,3 @@ scale_fill_viridis_d(name = "Shared\ndemographics", label =c("0"="No","1"="Yes")
 #ggsave("/Users/tifwan/Dropbox (University of Michigan)/IMPALA-2/Manuscripts/Decriptive genomic epi paper/Figures/variant_lockdown/2024_12_20_lockdown_risk.pdf", width =10)
 #ggsave("/Users/tifwan/University of Michigan Dropbox/Tiffany Wan/IMPALA-2/Manuscripts/Decriptive genomic epi paper/2025_04_26/figure_5a.pdf", width = 12)
 ```
-```{r}
-library(rlang)
-conditions <- c(
-  "participant_type == 'Community child'",
-  "hhid_match == 'Yes'"
-)
-dfs <- c("pre_Ecoli_meta_all","post_Ecoli_meta_all")
-trans_df <- data.frame()
-for(df in dfs){
-  for (cond in conditions) {
-  expr <- parse_expr(cond)  # Turn string into an R expression
-  subset_df <- get(df) %>%
-    filter(!!expr)  # Evaluate it in the context of the data
-  new_df <- table(subset_df$hhid,subset_df$transmission) %>%
-    as.data.frame() %>%
-    mutate(condition = cond,
-           lockdown = df)
-  trans_df <- rbind(trans_df,new_df)
-  }
-}
-
-trans_df <- trans_df %>%
-  filter(Freq!=0)
-
-trans_df %>%
-  filter(Var2==1) %>%
-  ggplot(aes(x = Var1, y = Freq, fill = condition), position = "identity") + geom_col()+ facet_wrap(.~lockdown,scales = "free",ncol = 1) 
-## table for the different demographics
-transmission_demo <- table(pre_Ecoli_meta_all$hhid[pre_Ecoli_meta_all$participant_type=="Community child"],pre_Ecoli_meta_all$transmission[pre_Ecoli_meta_all$participant_type=="Community child"]) %>% as.data.frame() %>%
-  mutate(demo = "Community child")
-
-table(post_Ecoli_meta_all$hhid[post_Ecoli_meta_all$participant_type=="Community child"], post_Ecoli_meta_all$transmission[post_Ecoli_meta_all$participant_type=="Community child"]) 
-
-table(pre_Ecoli_meta_all$hhid[pre_Ecoli_meta_all$hhid_match=="Yes"],pre_Ecoli_meta_all$transmission[pre_Ecoli_meta_all$hhid_match=="Yes"])
-
-table(post_Ecoli_meta_all$hhid[post_Ecoli_meta_all$hhid_match=="Yes"],post_Ecoli_meta_all$transmission[post_Ecoli_meta_all$hhid_match=="Yes"])
-length(unique(pre_Ecoli_meta_all$hhid))
-length(unique(post_Ecoli_meta_all$hhid))
-```
-```{r}
-
-```
-
-# statistical tests
-```{r}
-ST_chisq <- ST_demo_sub %>%
-  mutate(ST_test = ifelse(MLST=="Other","minor","major"))
-chisq.test(table(ST_chisq$ST_test,ST_chisq$lockdown))
-
-df_weekly <- ST_demo  %>%
-  mutate(week = floor_date(as.Date(collection_date), unit = "week")) %>%
-  group_by(week, location) %>%
-  summarise(count = n())
-
-ggplot(df_weekly, aes(x = week, y = count, fill = location)) +
-  geom_col() +
-  scale_x_date(date_breaks = "1 month", date_labels = "%b %d") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ST_demo %>%
-  mutate(collection_date=as.Date(collection_date)) %>%
-  select(collection_date,location) %>%
-  ggplot(aes(x = collection_date,fill = location)) + geom_bar()  + scale_x_date(date_breaks = "1 month", date_labels = "%b %d") 
-
-```
-# percentage of genetically linked children
-```{r}
-pre_child <- pre_Ecoli_meta_all %>%
-  filter(transmission==1 & participant_type=="Community child") %>%
-  select(participant_type, ST, region, hhid_match,lockdown) 
-
-post_child <- post_Ecoli_meta_all %>%
-  filter(transmission==1 & participant_type=="Community child")  %>%
-  select(participant_type, ST, region, hhid_match,lockdown) 
-all_child_prop <- rbind(pre_child, post_child)
-         
-pre_hos <- pre_Ecoli_meta_all %>%
-  filter(transmission==1 & participant_type=="Hospital patient") %>%
-  select(participant_type, ST, region, location,lockdown) 
-
-post_hos <- post_Ecoli_meta_all %>%
-  filter(transmission==1 & participant_type=="Hospital patient") %>%
-  select(participant_type, ST, region, location,lockdown) 
-
-all_hos_prop <- rbind(pre_hos, post_hos)
-table(all_hos_prop$region)
-nrow(all_hos_prop)
-```
-
-
